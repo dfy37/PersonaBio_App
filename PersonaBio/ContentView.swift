@@ -47,7 +47,7 @@ struct ContentView: View {
                         .padding(.horizontal)
                         .padding(.vertical, 12)
                     }
-                    .background(Color(uiColor: .systemGroupedBackground))
+                    .background(Color(.systemGroupedBackground))
                     .onChange(of: messages.count) {
                         if let lastID = messages.last?.id {
                             withAnimation {
@@ -98,7 +98,7 @@ struct ContentView: View {
             }
         }
         .padding()
-        .background(Color(uiColor: .systemBackground))
+        .background(Color(.systemBackground))
     }
 
     private var writeTipCard: some View {
@@ -183,12 +183,12 @@ private struct MessageBubble: View {
             .font(.body)
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
-            .foregroundColor(message.role == .assistant ? .primary : .white)
-            .background(message.role == .assistant ? Color(uiColor: .systemBackground) : Color.blue)
+            .foregroundStyle(message.role == .assistant ? .primary : .white)
+            .background(message.role == .assistant ? Color(.systemBackground) : .blue)
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(message.role == .assistant ? Color(uiColor: .systemGray4) : Color.clear, lineWidth: 1)
+                    .stroke(message.role == .assistant ? Color(.systemGray4) : .clear, lineWidth: 1)
             )
             .frame(maxWidth: 300, alignment: message.role == .assistant ? .leading : .trailing)
     }
