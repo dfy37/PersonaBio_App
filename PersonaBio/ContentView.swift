@@ -183,7 +183,7 @@ private struct MessageBubble: View {
             .font(.body)
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
-            .foregroundStyle(message.role == .assistant ? .primary : .white)
+            .foregroundStyle(message.role == .assistant ? Color.primary : .white)
             .background(message.role == .assistant ? Color(.systemBackground) : .blue)
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay(
