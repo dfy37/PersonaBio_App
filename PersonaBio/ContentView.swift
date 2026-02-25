@@ -11,6 +11,11 @@ enum MessageRole {
     case assistant
 }
 
+enum AppSection: Hashable {
+    case chat
+    case draft
+}
+
 struct ContentView: View {
     @State private var messages: [ChatMessage] = [
         ChatMessage(role: .assistant, content: "你好，我是你的传记采访助手。我们会像 ChatGPT 一样通过对话收集素材，信息足够后再开始撰写。\n\n先从第一问开始：你和主人公是什么关系？")
@@ -19,6 +24,8 @@ struct ContentView: View {
     @State private var interviewStep = 0
     @State private var collectedAnswers: [String] = []
     @State private var writingStarted = false
+    @State private var generatedDraft: String?
+    @State private var selectedSection: AppSection? = .chat
 
     private let interviewQuestions: [String] = [
         "你和主人公是什么关系？",
@@ -28,40 +35,63 @@ struct ContentView: View {
     ]
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                header
+        NavigationSplitView {
+            List(selection: $selectedSection) {
+                NavigationLink(value: AppSection.chat) {
+                    Label("采访聊天", systemImage: "message")
+                }
 
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        LazyVStack(spacing: 12) {
-                            ForEach(messages) { message in
-                                MessageBubble(message: message)
-                                    .id(message.id)
-                            }
+                NavigationLink(value: AppSection.draft) {
+                    Label("传记初稿", systemImage: "doc.text")
+                }
+                .disabled(generatedDraft == nil)
+            }
+            .navigationTitle("PersonaBio")
+        } detail: {
+            NavigationStack {
+                switch selectedSection ?? .chat {
+                case .chat:
+                    chatView
+                case .draft:
+                    draftView
+                }
+            }
+        }
+    }
 
-                            if canStartWriting {
-                                writeTipCard
-                            }
+    private var chatView: some View {
+        VStack(spacing: 0) {
+            header
+
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        ForEach(messages) { message in
+                            MessageBubble(message: message)
+                                .id(message.id)
                         }
-                        .padding(.horizontal)
-                        .padding(.vertical, 12)
+
+                        if canStartWriting {
+                            writeTipCard
+                        }
                     }
-                    .background(Color(.systemGroupedBackground))
-                    .onChange(of: messages.count) {
-                        if let lastID = messages.last?.id {
-                            withAnimation {
-                                proxy.scrollTo(lastID, anchor: .bottom)
-                            }
+                    .padding(.horizontal)
+                    .padding(.vertical, 12)
+                }
+                .background(Color(.systemGroupedBackground))
+                .onChange(of: messages.count) {
+                    if let lastID = messages.last?.id {
+                        withAnimation {
+                            proxy.scrollTo(lastID, anchor: .bottom)
                         }
                     }
                 }
-
-                composerBar
             }
-            .navigationTitle("采访式传记助手")
-            .navigationBarTitleDisplayMode(.inline)
+
+            composerBar
         }
+        .navigationTitle("采访式传记助手")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     private var header: some View {
@@ -96,6 +126,15 @@ struct ContentView: View {
                 Button("开始撰写", action: startWriting)
                     .buttonStyle(.borderedProminent)
             }
+
+            if generatedDraft != nil {
+                Button {
+                    selectedSection = .draft
+                } label: {
+                    Label("查看初稿", systemImage: "doc.text.magnifyingglass")
+                }
+                .buttonStyle(.bordered)
+            }
         }
         .padding()
         .background(Color(.systemBackground))
@@ -109,11 +148,47 @@ struct ContentView: View {
             Text("你可以继续补充细节，或点击“开始撰写”生成第一版人物传记。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+
+            if generatedDraft != nil {
+                Button {
+                    selectedSection = .draft
+                } label: {
+                    Label("进入初稿页面查看", systemImage: "arrow.right.circle")
+                        .font(.caption.weight(.semibold))
+                }
+                .buttonStyle(.bordered)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .background(.thinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private var draftView: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("传记初稿")
+                    .font(.title2.bold())
+
+                if let generatedDraft {
+                    Text(generatedDraft)
+                        .font(.body)
+                        .textSelection(.enabled)
+                } else {
+                    ContentUnavailableView(
+                        "暂无初稿",
+                        systemImage: "doc.text",
+                        description: Text("请先在采访聊天中完成素材收集，并点击“开始撰写”。")
+                    )
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+        }
+        .background(Color(.systemGroupedBackground))
+        .navigationTitle("初稿查看")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     private var canSend: Bool {
@@ -159,7 +234,8 @@ struct ContentView: View {
         接下来我会基于这些信息扩展为完整章节，并保持真实、克制、可读的叙事风格。
         """
 
-        messages.append(ChatMessage(role: .assistant, content: draft))
+        generatedDraft = draft
+        messages.append(ChatMessage(role: .assistant, content: "初稿已生成。你可以点击输入框右侧“查看初稿”，或从侧边栏进入“传记初稿”页面查看。"))
     }
 }
 
